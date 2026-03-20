@@ -37,7 +37,17 @@ Day1Global 投资分析 Skills 共享仓库 | Day1Global Investment Analysis Ski
 
 ### 安装方法
 
-#### 方法一：通过 URL 安装（推荐）
+#### 方法一：通过 Skills.sh 安装（推荐）
+
+```bash
+npx -y @anthropic-ai/claude-code skill add star23/tech-earnings-deepdive
+```
+
+#### 方法二：通过 ClawHub 安装
+
+访问 [clawhub.ai/star23/tech-earnings-deepdive](https://clawhub.ai/star23/tech-earnings-deepdive)，按页面指引一键安装。
+
+#### 方法三：通过 URL 安装
 
 在 Claude 对话中输入以下命令：
 
@@ -45,7 +55,7 @@ Day1Global 投资分析 Skills 共享仓库 | Day1Global Investment Analysis Ski
 /install-skill https://github.com/Day1Global/Day1Global-Skills/raw/main/tech-earnings-deepdive.skill
 ```
 
-#### 方法二：手动下载安装
+#### 方法四：手动下载安装
 
 1. 从本仓库下载 `tech-earnings-deepdive.skill` 文件
 2. 在 Claude 对话中使用 `/install-skill` 命令并上传该文件
@@ -150,7 +160,17 @@ The following types of questions will trigger this Skill:
 
 ### Installation
 
-#### Option 1: Install via URL (Recommended)
+#### Option 1: Install via Skills.sh (Recommended)
+
+```bash
+npx -y @anthropic-ai/claude-code skill add star23/tech-earnings-deepdive
+```
+
+#### Option 2: Install via ClawHub
+
+Visit [clawhub.ai/star23/tech-earnings-deepdive](https://clawhub.ai/star23/tech-earnings-deepdive) and follow the on-page instructions to install.
+
+#### Option 3: Install via URL
 
 Enter the following command in a Claude conversation:
 
@@ -158,7 +178,7 @@ Enter the following command in a Claude conversation:
 /install-skill https://github.com/Day1Global/Day1Global-Skills/raw/main/tech-earnings-deepdive.skill
 ```
 
-#### Option 2: Manual Download
+#### Option 4: Manual Download
 
 1. Download the `tech-earnings-deepdive.skill` file from this repository
 2. Use the `/install-skill` command in a Claude conversation and upload the file
