@@ -1,163 +1,163 @@
 ---
 name: us-market-sentiment
-description: 美股市场情绪监控与仓位建议系统。通过追踪5大核心指标（NAAIM暴露指数、机构股票配置比例、散户净买入额、标普500远期市盈率、对冲基金杠杆率）评估市场情绪状态，输出情绪评级和仓位建议。当用户提到美股情绪、市场过热、贪婪恐慌指标、NAAIM、机构持仓、散户情绪、市盈率估值泡沫、对冲基金杠杆、是否该减仓、市场风险评估、仓位管理建议、市场顶部/底部信号等话题时，务必使用此技能。即使用户只是笼统地问"美股现在风险大不大"或"该不该减仓"，也应触发此技能来提供结构化的分析框架。
+description: US stock market sentiment monitoring and position recommendation system. Evaluates market sentiment by tracking 5 core indicators (NAAIM Exposure Index, Institutional Equity Allocation, Retail Net Buying, S&P 500 Forward P/E Ratio, Hedge Fund Leverage) and outputs sentiment ratings and position recommendations. This skill should be used when the user mentions topics such as US stock sentiment, market overheating, greed/fear indicators, NAAIM, institutional positioning, retail sentiment, P/E valuation bubbles, hedge fund leverage, whether to reduce positions, market risk assessment, position management advice, market top/bottom signals, etc. Even if the user simply asks "Is the US stock market risky right now?" or "Should I reduce my positions?", this skill should be triggered to provide a structured analytical framework.
 ---
 
-# 美股市场情绪监控系统
+# US Stock Market Sentiment Monitoring System
 
-这个技能帮助你系统性地分析美股市场情绪，基于5大核心指标判断当前市场处于贪婪还是恐慌状态，并给出仓位调整建议。
+This skill helps you systematically analyze US stock market sentiment, determine whether the current market is in a state of greed or fear based on 5 core indicators, and provide position adjustment recommendations.
 
-## 使用场景
+## Use Cases
 
-当用户询问以下类型问题时使用此技能：
-- 美股市场是否过热 / 是否该减仓
-- 当前市场情绪如何
-- 机构和散户的仓位情况
-- 估值是否偏高
-- 市场风险评估
+Use this skill when users ask the following types of questions:
+- Is the US stock market overheating / Should I reduce my positions
+- What is the current market sentiment
+- What are institutional and retail investor positioning levels
+- Are valuations too high
+- Market risk assessment
 
-## 分析框架
+## Analytical Framework
 
-### 5大核心监控指标
+### 5 Core Monitoring Indicators
 
-对每个指标，使用 web_search 搜索最新数据，然后按照下方标准评估。
+For each indicator, use web_search to find the latest data, then evaluate according to the criteria below.
 
-#### 指标1：NAAIM暴露指数（NAAIM Exposure Index）
+#### Indicator 1: NAAIM Exposure Index
 
-**是什么**：全称 National Association of Active Investment Managers Exposure Index，由美国主动型基金经理协会每周发布。反映活跃投资经理们目前在股票上的持仓比例（0 = 全空仓，100 = 全满仓，可超过100表示加了杠杆）。
+**What it is**: The full name is National Association of Active Investment Managers Exposure Index, published weekly by the association of active investment managers in the US. It reflects the current equity exposure of active investment managers (0 = fully in cash, 100 = fully invested, can exceed 100 indicating leverage).
 
-**搜索关键词**：`NAAIM exposure index latest` 或 `NAAIM exposure index this week`
+**Search keywords**: `NAAIM exposure index latest` or `NAAIM exposure index this week`
 
-**预警标准**：
-- 数值 > 80 且中位数触及 100 → ⚠️ 预警：机构已接近满仓，进一步加仓空间有限
-- 数值 40-80 → ✅ 正常
-- 数值 < 40 → 📉 机构大幅减仓，可能是恐慌信号（反向指标：可能是入场机会）
+**Warning criteria**:
+- Value > 80 and median reaches 100 → ⚠️ Warning: Institutions are near full allocation, limited room for further buying
+- Value 40-80 → ✅ Normal
+- Value < 40 → 📉 Institutions have significantly reduced positions, possibly a panic signal (contrarian indicator: may be an entry opportunity)
 
-**解读要点**：当几乎所有主动基金经理都满仓时，意味着"能买的人都买了"，后续缺乏新增买盘推动股价上涨。
-
----
-
-#### 指标2：机构股票配置比例（Institutional Equity Allocation）
-
-**是什么**：由 State Street 等大型资产托管机构发布的数据，反映全球机构投资者（养老金、保险公司、主权基金等）在资产组合中分配给股票的比例。
-
-**搜索关键词**：`State Street institutional equity allocation` 或 `institutional investor equity allocation percentage`
-
-**预警标准**：
-- 处于2007年以来历史极值区域 → ⚠️ 预警：机构配置过高，是典型的反向指标
-- 中等水平 → ✅ 正常
-- 历史低位 → 📉 可能预示底部区域
-
-**解读要点**：机构投资者作为整体是典型的"后知后觉"者——他们在顶部最乐观（配置最高），在底部最悲观（配置最低）。
+**Key interpretation**: When nearly all active fund managers are fully invested, it means "everyone who can buy has already bought," and there is a lack of new buying power to push stock prices higher.
 
 ---
 
-#### 指标3：散户净买入额（Retail Net Buying）
+#### Indicator 2: Institutional Equity Allocation
 
-**是什么**：摩根大通（JPMorgan）每日追踪的散户投资者资金流向数据，计算散户在股票市场的净买入金额。
+**What it is**: Data published by large asset custodians such as State Street, reflecting the percentage of equity allocation in the portfolios of global institutional investors (pension funds, insurance companies, sovereign wealth funds, etc.).
 
-**搜索关键词**：`JPMorgan retail investor net buying` 或 `retail investor flows equity`
+**Search keywords**: `State Street institutional equity allocation` or `institutional investor equity allocation percentage`
 
-**预警标准**：
-- 日均买入量 > 85%历史分位 → ⚠️ 预警：散户情绪过热，追高风险大
-- 正常水平 → ✅ 正常
-- 大幅净卖出 → 📉 恐慌抛售（可能是反向买入信号）
+**Warning criteria**:
+- At historical extreme levels since 2007 → ⚠️ Warning: Institutional allocation is too high, a classic contrarian indicator
+- Moderate levels → ✅ Normal
+- Historical lows → 📉 May signal a bottom
 
-**解读要点**：散户投资者往往在市场最热时涌入、最恐慌时抛售。极端的散户买入往往预示短期见顶。
-
----
-
-#### 指标4：标普500远期市盈率（S&P 500 Forward P/E Ratio）
-
-**是什么**：标普500指数当前价格 ÷ 未来12个月预期每股收益（Forward Earnings）。这是华尔街最常用的估值指标之一。
-
-**搜索关键词**：`S&P 500 forward PE ratio current` 或 `S&P 500 forward earnings multiple`
-
-**预警标准**：
-- 接近或超过 22-23 倍（接近2000年互联网泡沫或2021年高点） → ⚠️ 预警：估值过高
-- 16-20 倍 → ✅ 合理区间
-- 低于 15 倍 → 📉 估值偏低（可能是入场机会）
-
-**解读要点**：高市盈率意味着投资者为每一元盈利支付更多价格。当远期PE接近历史峰值时，说明股价已经"透支"了未来很多增长预期。
+**Key interpretation**: Institutional investors as a whole are typically "late to the party" — they are most optimistic at the top (highest allocation) and most pessimistic at the bottom (lowest allocation).
 
 ---
 
-#### 指标5：对冲基金杠杆率（Hedge Fund Leverage）
+#### Indicator 3: Retail Net Buying
 
-**是什么**：对冲基金在投资中使用的借贷倍数。杠杆率越高，意味着基金借更多钱来放大投资。通常由高盛（Goldman Sachs）、摩根士丹利（Morgan Stanley）的 Prime Brokerage 部门报告。
+**What it is**: Daily retail investor fund flow data tracked by JPMorgan, calculating the net buying amount of retail investors in the stock market.
 
-**搜索关键词**：`hedge fund leverage ratio Goldman Sachs` 或 `hedge fund gross leverage prime brokerage`
+**Search keywords**: `JPMorgan retail investor net buying` or `retail investor flows equity`
 
-**预警标准**：
-- 杠杆率处于历史高位 → ⚠️ 预警：拥挤仓位 + 高杠杆 = 波动放大器
-- 中等水平 → ✅ 正常
-- 历史低位 → 📉 去杠杆完成，市场可能企稳
+**Warning criteria**:
+- Daily average buying > 85th historical percentile → ⚠️ Warning: Retail sentiment is overheated, high risk of chasing tops
+- Normal levels → ✅ Normal
+- Significant net selling → 📉 Panic selling (may be a contrarian buy signal)
 
-**解读要点**：高杠杆像是"火药桶"——市场正常时没问题，一旦出现回调，被迫平仓会引发连锁反应，把小幅回调变成大幅暴跌。
+**Key interpretation**: Retail investors tend to pile in when the market is hottest and sell when panic is greatest. Extreme retail buying often signals a short-term top.
 
 ---
 
-### 综合评估逻辑
+#### Indicator 4: S&P 500 Forward P/E Ratio
 
-统计5个指标中有多少个处于预警状态：
+**What it is**: The current S&P 500 index price ÷ expected earnings per share over the next 12 months (Forward Earnings). This is one of Wall Street's most commonly used valuation metrics.
 
-| 预警指标数 | 情绪评级 | 仓位建议 |
+**Search keywords**: `S&P 500 forward PE ratio current` or `S&P 500 forward earnings multiple`
+
+**Warning criteria**:
+- Approaching or exceeding 22-23x (near the 2000 dot-com bubble or 2021 highs) → ⚠️ Warning: Valuations are too high
+- 16-20x → ✅ Reasonable range
+- Below 15x → 📉 Valuations are low (may be an entry opportunity)
+
+**Key interpretation**: A high P/E ratio means investors are paying more for each dollar of earnings. When the forward PE approaches historical peaks, it indicates that stock prices have already "priced in" a great deal of future growth expectations.
+
+---
+
+#### Indicator 5: Hedge Fund Leverage
+
+**What it is**: The borrowing multiple used by hedge funds in their investments. The higher the leverage, the more money the fund borrows to amplify its investments. Typically reported by the Prime Brokerage divisions of Goldman Sachs and Morgan Stanley.
+
+**Search keywords**: `hedge fund leverage ratio Goldman Sachs` or `hedge fund gross leverage prime brokerage`
+
+**Warning criteria**:
+- Leverage at historical highs → ⚠️ Warning: Crowded positions + high leverage = volatility amplifier
+- Moderate levels → ✅ Normal
+- Historical lows → 📉 Deleveraging is complete, market may stabilize
+
+**Key interpretation**: High leverage is like a "powder keg" — no problem when the market is normal, but once a pullback occurs, forced liquidations trigger chain reactions, turning minor pullbacks into major crashes.
+
+---
+
+### Comprehensive Assessment Logic
+
+Count how many of the 5 indicators are in warning status:
+
+| Warning Indicators | Sentiment Rating | Position Recommendation |
 |-----------|---------|---------|
-| 0 个 | 😨 恐慌 | 可逐步加仓，关注超跌反弹机会 |
-| 1 个 | 📊 中性偏谨慎 | 维持现有仓位，观察趋势 |
-| 2 个 | 📊 中性偏乐观 | 可小幅调整，注意风控 |
-| 3 个 | 🟡 贪婪 | 减仓信号：考虑减少10-20%股票敞口 |
-| 4 个 | 🔴 极度贪婪 | 明确减仓：减少20-30%股票敞口 |
-| 5 个 | 🔴🔴 极度贪婪（全面预警） | 大幅减仓或建立对冲头寸 |
+| 0 | 😨 Panic | Consider gradually adding positions, watch for oversold rebound opportunities |
+| 1 | 📊 Neutral-Cautious | Maintain current positions, monitor trends |
+| 2 | 📊 Neutral-Optimistic | Minor adjustments acceptable, mind risk controls |
+| 3 | 🟡 Greed | Reduction signal: Consider reducing equity exposure by 10-20% |
+| 4 | 🔴 Extreme Greed | Clear reduction: Reduce equity exposure by 20-30% |
+| 5 | 🔴🔴 Extreme Greed (Full Warning) | Significantly reduce positions or establish hedging positions |
 
-## 输出格式
+## Output Format
 
-使用以下结构化模板输出分析结果：
+Use the following structured template to output the analysis results:
 
 ```
-# 🎯 美股市场情绪监控报告
+# 🎯 US Stock Market Sentiment Monitoring Report
 
-**日期**：[当前日期]
+**Date**: [Current Date]
 
-## 📊 指标仪表盘
+## 📊 Indicator Dashboard
 
-| 指标 | 当前数值 | 状态 | 信号 |
+| Indicator | Current Value | Status | Signal |
 |------|---------|------|------|
-| NAAIM暴露指数 | [数值] | [正常/预警] | [简要说明] |
-| 机构股票配置 | [数值] | [正常/预警] | [简要说明] |
-| 散户净买入 | [数值] | [正常/预警] | [简要说明] |
-| 标普500远期PE | [数值] | [正常/预警] | [简要说明] |
-| 对冲基金杠杆率 | [数值] | [正常/预警] | [简要说明] |
+| NAAIM Exposure Index | [Value] | [Normal/Warning] | [Brief explanation] |
+| Institutional Equity Allocation | [Value] | [Normal/Warning] | [Brief explanation] |
+| Retail Net Buying | [Value] | [Normal/Warning] | [Brief explanation] |
+| S&P 500 Forward PE | [Value] | [Normal/Warning] | [Brief explanation] |
+| Hedge Fund Leverage | [Value] | [Normal/Warning] | [Brief explanation] |
 
-## 🚦 综合评级
+## 🚦 Comprehensive Rating
 
-**情绪状态**：[极度贪婪 / 贪婪 / 中性 / 恐慌]
-**预警指标数**：[X] / 5
+**Sentiment Status**: [Extreme Greed / Greed / Neutral / Panic]
+**Warning Indicators**: [X] / 5
 
-## 💼 仓位建议
+## 💼 Position Recommendation
 
-[根据评级给出具体建议]
+[Provide specific recommendations based on the rating]
 
-## ⚠️ 注意事项
+## ⚠️ Disclaimers
 
-- 此分析基于公开可查的市场数据，仅供参考
-- 单一指标不构成交易信号，需综合判断
-- 数据可能有1-2周的滞后性
-- 建议结合自身风险承受能力做决策
+- This analysis is based on publicly available market data and is for reference only
+- A single indicator does not constitute a trading signal; comprehensive judgment is required
+- Data may have a 1-2 week lag
+- Recommendations should be considered in conjunction with your own risk tolerance
 ```
 
-## 执行步骤
+## Execution Steps
 
-1. 使用 web_search 分别搜索5个指标的最新数据
-2. 如果某个指标搜索不到最新数值，注明"数据暂不可用"并说明最近一次已知数据
-3. 根据预警标准逐一评估每个指标
-4. 统计预警数量，得出综合评级
-5. 按输出模板生成报告
-6. 在报告末尾附上主要数据来源链接
+1. Use web_search to search for the latest data for each of the 5 indicators
+2. If the latest value for an indicator cannot be found, note "Data currently unavailable" and provide the most recent known data
+3. Evaluate each indicator according to the warning criteria
+4. Count the number of warnings to derive the comprehensive rating
+5. Generate the report using the output template
+6. Append primary data source links at the end of the report
 
-## 重要提醒
+## Important Reminders
 
-- 某些数据（如对冲基金杠杆率）不对公众实时公开，可能需要引用新闻报道或研究报告中的数据
-- 如果搜索不到某个指标的可靠数据，诚实说明而不是猜测
-- 这些指标更适合中长期（周度/月度）判断，不适合日内交易决策
-- 所有建议仅供参考，不构成投资建议
+- Some data (such as hedge fund leverage) is not publicly available in real time and may require citing news reports or research publications
+- If reliable data for an indicator cannot be found, honestly state so rather than guessing
+- These indicators are more suitable for medium- to long-term (weekly/monthly) assessments and are not appropriate for intraday trading decisions
+- All recommendations are for reference only and do not constitute investment advice
