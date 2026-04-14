@@ -1,199 +1,362 @@
 ---
 name: btc-bottom-model
-description: Bitcoin bottom-timing judgment model. By tracking 6 core indicators (RSI technical oversold, volume dry-up, MVRV ratio, social media fear index, miner shutdown price, long-term holder behavior), it comprehensively evaluates whether Bitcoin has entered a bottom-fishing zone and outputs a bottom-fishing rating and position-building recommendations. When users mention topics such as Bitcoin bottom-fishing, whether BTC has bottomed out, Bitcoin oversold, MVRV, miner shutdown price, long-term holder LTH, Bitcoin fear index, whether to buy Bitcoin, BTC position entry timing, crypto market bottom signals, Bitcoin cycle bottom, etc., be sure to use this skill. Even if the user simply asks "Can I buy the dip on Bitcoin now?" or "Has BTC finished dropping?", this skill should be triggered to provide a structured analysis framework.
+description: Bitcoin cycle timing model with weighted scoring system. Tracks 13 indicators across 2 categories — Daily Pulse (4 indicators, 32 points) and Weekly Structure (9 indicators, 68 points) — producing a composite 0-100 Market Heat Score. Covers ETF flows, funding rate, long/short ratio, fear & greed index, LTH-MVRV, NUPL, SOPR (LTH + STH), LTH supply %, moving average multiples (365d MA, 200w MA), weekly RSI, and volume trends. Provides both buy AND sell recommendations across the full market cycle. Use this skill when users mention Bitcoin bottom-fishing, BTC cycle position, whether to buy or sell BTC, on-chain metrics, MVRV, NUPL, SOPR, LTH behavior, ETF inflows/outflows, funding rates, fear index, whether Bitcoin is overheated, miner cost, crypto market sentiment, BTC position sizing, or any question like "Should I buy Bitcoin now?" or "Is BTC topping out?" or "What do on-chain indicators say?"
 ---
 
-# Bitcoin Bottom-Timing Judgment Model
+# Bitcoin Cycle Timing Model (BTC Market Heat Scoring System)
 
-This skill helps you systematically determine whether Bitcoin has entered a bottom zone worth building a position in. Through a comprehensive evaluation of 6 on-chain and market indicators, it avoids blind "catching a falling knife" style bottom-fishing and identifies entry opportunities with higher probability.
+This skill helps you systematically assess where Bitcoin sits in its market cycle — from extreme fear (accumulation opportunity) to extreme greed (distribution/exit signal). Through a weighted evaluation of 13 on-chain, sentiment, and market indicators, it produces a 0-100 **Market Heat Score** and actionable buy/sell recommendations.
 
 ## Use Cases
 
 Use this skill when users ask the following types of questions:
 - Has Bitcoin bottomed out / Can I buy the dip
+- Is Bitcoin overheated / Should I take profits
 - Where is BTC in the current cycle
-- Do on-chain data support building a position
-- Where is the miner cost floor
-- What are long-term holders doing
+- Do on-chain data support building or reducing a position
+- What are long-term holders doing / Are ETFs buying or selling
+- Is leverage too high / Is the market too greedy
 
-## Analysis Framework
+## Scoring System Overview
 
-### 6 Core Bottom-Fishing Indicators
+The model uses a **weighted composite score from 0 to 100**:
 
-For each indicator, use web_search to search for the latest data, then evaluate according to the criteria below.
+- **0 = Extreme Fear** (historically the best buying opportunities)
+- **100 = Extreme Greed** (historically the best selling opportunities)
 
-#### Indicator 1: K-line Technical Indicator — RSI Oversold
+Indicators are split into two groups:
 
-**What it is**: RSI (Relative Strength Index) is a technical analysis tool that measures the speed and magnitude of price movements, with values ranging from 0-100. In simple terms: the lower the RSI, the more severe the recent decline and selling pressure. Here we focus specifically on the "weekly level" (i.e., using each week as one candlestick), because the weekly timeframe filters out the short-term noise of daily charts and better reflects medium- to long-term trends.
+| Group | Weight | Purpose | Indicators |
+|-------|--------|---------|------------|
+| **Daily Pulse** | 32 / 100 | Fast-moving sentiment & flow signals | 4 indicators |
+| **Weekly Structure** | 68 / 100 | Slow-moving on-chain & cycle signals | 9 indicators |
 
-**Search keywords**: `Bitcoin weekly RSI` or `BTC RSI 14 current`
-
-**Bottom signal criteria**:
-- Weekly RSI < 30 → ✅ Triggered: Severely oversold, historically this level often corresponds to cycle bottom zones
-- Weekly RSI 30-45 → 🟡 Approaching: Weak but not at extremes
-- Weekly RSI > 45 → ❌ Not triggered: Not in an oversold state
-
-**Key interpretation**: The number of times Bitcoin's weekly RSI has dropped below 30 in history can be counted on one hand (2015, late 2018, March 2020, late 2022), and each time corresponded to a major bottom. However, note that RSI can remain at low levels for a period of time — it doesn't mean "it bounces as soon as it bottoms."
+The heavier weighting on weekly/structural indicators reflects their superior track record in identifying cycle extremes.
 
 ---
 
-#### Indicator 2: Volume Dry-up
+## Daily Pulse Indicators (32 points total)
 
-**What it is**: After a round of panic selling, if trading volume significantly contracts (below the recent 30-day average volume), it indicates that selling pressure has been exhausted — everyone who wanted to sell has already sold. This is an important precursor to bottom formation. Volume refers to the total amount (or total value) of Bitcoin traded during a given period.
+For each indicator, use web_search to find the latest data, then score according to the normalization rules below. Each indicator's raw value is normalized to a 0-100 sub-score, then multiplied by its weight to get its contribution to the total.
 
-**Search keywords**: `Bitcoin trading volume 30 day average` or `BTC daily volume declining`
+### D1: Bitcoin ETF Daily Net Flow (Weight: 12 points)
 
-**Bottom signal criteria**:
-- Current daily volume < 70% of 30-day average → ✅ Triggered: Selling exhaustion, selling pressure dried up
-- Volume near the 30-day average → 🟡 Neutral
-- Volume far above the 30-day average → ❌ Not triggered: Market is still actively selling
+**What it is**: The net amount of money flowing into or out of spot Bitcoin ETFs (like BlackRock's IBIT, Fidelity's FBTC) each day. Large inflows = institutional buying pressure; large outflows = institutional selling pressure. This became one of the most important demand indicators after spot BTC ETFs launched in January 2024.
 
-**Key interpretation**: The hallmark of panic selling is "high-volume crash," while the hallmark of a bottom is "low-volume base building." If the price has already dropped significantly but volume has contracted, it indicates that selling momentum is weakening.
+**Search keywords**: `Bitcoin ETF daily net flow` or `BTC spot ETF inflow outflow today`
 
----
+**Scoring**:
+- Net outflow ≥ $500M → Sub-score 0 (Extreme fear / institutional panic selling)
+- Net flow ~$0 → Sub-score 50 (Neutral)
+- Net inflow ≥ $1B → Sub-score 100 (Extreme greed / FOMO buying)
+- Linear interpolation between these anchors
 
-#### Indicator 3: MVRV Ratio (Market Value to Realized Value)
-
-**What it is**: This is an on-chain indicator unique to Bitcoin.
-- **Market Value (market cap)** = current price × total circulating supply, which is what we commonly refer to as Bitcoin's total market cap
-- **Realized Value (realized market cap)** = the total value calculated by pricing each Bitcoin at the price when it was last transferred. It can be simply understood as "the average cost basis of all holders"
-
-When MVRV < 1.0, it means the market as a whole is at a loss (current market value is below the sum of everyone's cost basis), which has historically been an excellent long-term buying zone.
-
-**Search keywords**: `Bitcoin MVRV ratio` or `BTC MVRV glassnode`
-
-**Bottom signal criteria**:
-- MVRV < 1.0 → ✅ Triggered: Overall market at a loss, historic bottom zone
-- MVRV 1.0-1.5 → 🟡 Low but not extreme
-- MVRV > 1.5 → ❌ Not triggered: Market overall in profit
-
-**Key interpretation**: MVRV < 1 has only occurred a few times in Bitcoin's history (2011, 2015, 2018-2019, 2022), each lasting only a short period, and all were followed by enormous price increases. This is one of the most reliable cycle bottom indicators.
+**Interpretation**: Sustained large ETF inflows often indicate late-stage institutional FOMO near tops. Conversely, persistent outflows or the absence of inflows during price drops can signal capitulation bottoms.
 
 ---
 
-#### Indicator 4: Social Media Fear Index
+### D2: Funding Rate (Weight: 8 points)
 
-**What it is**: By analyzing the sentiment of Bitcoin discussions on social platforms such as Twitter (X), Reddit, Telegram, etc., a "fear/greed" score is calculated. Commonly used tools include Alternative.me's Fear & Greed Index, as well as various sentiment analysis tools based on natural language processing. 0 = Extreme Fear, 100 = Extreme Greed.
+**What it is**: In perpetual futures markets, the funding rate is a periodic payment between long and short traders. Positive = longs pay shorts (bullish bias), negative = shorts pay longs (bearish bias). It directly reflects leverage sentiment in the derivatives market.
+
+**Search keywords**: `Bitcoin funding rate` or `BTC perpetual funding rate`
+
+**Scoring**:
+- Funding rate ≤ -0.05% → Sub-score 0 (Extreme bearishness in derivatives)
+- Funding rate ~0.01% → Sub-score 50 (Neutral)
+- Funding rate ≥ 0.10% → Sub-score 100 (Extreme bullish leverage)
+- Linear interpolation between these anchors
+
+**Interpretation**: Persistently high funding rates (>0.05%) mean longs are paying a premium to maintain positions — a crowded trade vulnerable to liquidation cascades. Deeply negative funding rates indicate short dominance, often seen near bottoms.
+
+---
+
+### D3: Fear & Greed Index (Weight: 7 points)
+
+**What it is**: A composite sentiment index (0-100) aggregating market volatility, volume, social media sentiment, surveys, Bitcoin dominance, and Google Trends. Published daily by Alternative.me. 0 = Extreme Fear, 100 = Extreme Greed.
 
 **Search keywords**: `crypto fear and greed index` or `Bitcoin fear greed index today`
 
-**Bottom signal criteria**:
-- Fear index < 25 (Extreme Fear) → ✅ Triggered: Market is permeated with panic, often a contrarian indicator
-- Fear index 25-45 → 🟡 Leaning fearful but not extreme
-- Fear index > 45 → ❌ Not triggered: Market sentiment is normal or leaning greedy
+**Scoring**: Direct passthrough (the index itself is already on a 0-100 scale matching our framework).
 
-**Key interpretation**: Buffett's famous quote "Be greedy when others are fearful" applies equally to the crypto market. When social media is flooded with talk of "going to zero" or "never touching it again," it's often near the bottom. However, extreme fear can persist for weeks or even months.
+**Interpretation**: When fear is extreme (<15), the crowd is capitulating — historically the best buying windows. When greed is extreme (>80), euphoria dominates — historically precedes significant corrections.
 
 ---
 
-#### Indicator 5: Miner Shutdown Price
+### D4: Long/Short Ratio (Weight: 5 points)
 
-**What it is**: Bitcoin miners need to pay electricity costs to run mining machines. When the Bitcoin price drops below a certain mining machine's mining cost, operating that machine becomes unprofitable, and miners will choose to shut down. The shutdown price of mainstream miners (such as Bitmain Antminer S19 series or the newer S21 series) forms a "natural floor" — because when a large number of miners are forced to shut down, network hashrate decreases, mining difficulty adjusts, and eventually a new equilibrium is reached.
+**What it is**: The ratio of long to short positions on major exchanges (Binance, OKX, etc.). A ratio of 1.0 = equal longs and shorts. Above 1.0 = more longs. This shows real-time positioning of active traders.
 
-**Search keywords**: `Bitcoin mining cost per BTC` or `Bitcoin miner breakeven price` or `Antminer S19 shutdown price`
+**Search keywords**: `Bitcoin long short ratio` or `BTC long short ratio Binance`
 
-**Bottom signal criteria**:
-- Current price near or below mainstream miner shutdown price → ✅ Triggered: Price approaching production cost floor
-- Current price 20-50% above shutdown price → 🟡 Miners under pressure but still profitable
-- Current price far above shutdown price → ❌ Not triggered: Miners are well profitable
+**Scoring**:
+- Ratio ≤ 0.8 → Sub-score 0 (Heavy short positioning)
+- Ratio ~1.0 → Sub-score 40 (Slight long bias is normal)
+- Ratio ~1.5 → Sub-score 70 (Crowded long)
+- Ratio ≥ 2.0 → Sub-score 100 (Extreme long crowding)
 
-**Key interpretation**: The miner shutdown price adjusts with changes in electricity costs, mining machine efficiency, and network difficulty. After each halving (mining reward halved), the shutdown price rises significantly. Focus on the cost floor of the latest generation of mainstream miners, not outdated and inefficient ones.
-
----
-
-#### Indicator 6: Long-Term Holder Behavior (LTH — Long Term Holders)
-
-**What it is**: On-chain data classifies addresses that have held Bitcoin for more than 155 days (approximately 5 months) as "Long-Term Holders" (LTH). LTH Supply Ratio = BTC held by long-term holders ÷ total circulating BTC supply. When this ratio increases, it means more and more coins are transferring from short-term traders to "diamond hands."
-
-**Search keywords**: `Bitcoin long term holder supply ratio` or `BTC LTH supply glassnode`
-
-**Bottom signal criteria**:
-- LTH supply ratio continuously rising and > 70% → ✅ Triggered: Smart money is accumulating, bottom signal
-- LTH supply ratio stable → 🟡 Neutral
-- LTH supply ratio declining → ❌ Not triggered: Long-term holders are selling (typically occurs at bull market tops)
-
-**Key interpretation**: Long-term holders are typically "veterans" who have experienced multiple bull and bear cycles. When they accumulate heavily at low prices, it indicates that these experienced investors believe the current price has long-term value. This is one of the most meaningful "smart money" indicators.
+**Interpretation**: Extremely high long/short ratios indicate one-sided positioning vulnerable to a squeeze. Very low ratios (shorts dominating) can signal a potential short squeeze and reversal upward.
 
 ---
 
-### Comprehensive Evaluation Logic
+## Weekly Structure Indicators (68 points total)
 
-Count how many of the 6 indicators have triggered a bottom signal:
+These on-chain and macro-cycle indicators move slowly and are more reliable for identifying major cycle tops and bottoms. Use web_search to find the latest data.
 
-| Triggered Indicators | Bottom Rating | Position-Building Recommendation |
-|-----------|---------|---------|
-| 0-1 | ❌ Weak (Not recommended) | Wait and watch, no rush to enter |
-| 2 | 🟡 Weak | Small exploratory position (5-10% of total position) |
-| 3 | 🟡 Moderate | Begin building position in batches (10-20% of total position) |
-| 4 | ✅ Strong | Batch position-building signal, can increase size (20-40% of total position) |
-| 5 | ✅✅ Very Strong | Heavy position bottom-fishing signal (40-60% of total position) |
-| 6 | 🔥 Extremely Strong (Historic bottom) | Maximize position (60-80% of total position), this opportunity is very rare |
+### W1: LTH-MVRV — Long-Term Holder Market Value to Realized Value (Weight: 12 points)
 
-**Note**: Position ratios refer to the proportion of your total funds planned for the crypto market, not your total personal assets. Please adjust according to your own risk tolerance.
+**What it is**: MVRV calculated specifically for Long-Term Holders (coins held >155 days). It compares the current market value of LTH coins to their realized value (cost basis). When LTH-MVRV is low, even diamond hands are underwater — a powerful bottom signal. When very high, LTH are sitting on massive unrealized gains and likely to distribute.
+
+**Search keywords**: `Bitcoin LTH MVRV ratio` or `BTC long term holder MVRV glassnode`
+
+**Scoring**:
+- LTH-MVRV ≤ 0.5 → Sub-score 0 (LTH deeply underwater, extreme bottom)
+- LTH-MVRV ~1.0 → Sub-score 20 (LTH at breakeven)
+- LTH-MVRV ≥ 3.5 → Sub-score 100 (LTH in massive profit, distribution likely)
+- Linear interpolation between anchors
+
+**Interpretation**: This is one of the highest-weight indicators because LTH behavior has historically been the most reliable cycle marker. LTH-MVRV < 1.0 has only occurred at major cycle bottoms.
+
+---
+
+### W2: NUPL — Net Unrealized Profit/Loss (Weight: 11 points)
+
+**What it is**: Measures the overall unrealized profit or loss of all Bitcoin holders as a percentage. NUPL = (Market Cap - Realized Cap) / Market Cap. Negative = the network as a whole is at a loss. Above 0.75 = euphoria.
+
+**Search keywords**: `Bitcoin NUPL` or `BTC net unrealized profit loss`
+
+**Scoring**:
+- NUPL ≤ -0.20 → Sub-score 0 (Capitulation — network-wide losses)
+- NUPL ~0.25 → Sub-score 50 (Neutral — moderate unrealized profit)
+- NUPL ≥ 0.75 → Sub-score 100 (Euphoria — massive unrealized gains, likely top)
+- Linear interpolation between anchors
+
+**Historical phases**: NUPL < 0 = "Capitulation" (buy zone), 0-0.25 = "Hope/Fear", 0.25-0.50 = "Optimism", 0.50-0.75 = "Belief/Greed", > 0.75 = "Euphoria" (sell zone).
+
+---
+
+### W3: LTH-SOPR — Long-Term Holder Spent Output Profit Ratio (Weight: 9 points)
+
+**What it is**: When long-term holders move/sell their coins, LTH-SOPR measures whether they're selling at a profit (>1.0) or a loss (<1.0). It's calculated as the value at spending time ÷ value at creation time for outputs held >155 days.
+
+**Search keywords**: `Bitcoin LTH SOPR` or `BTC long term holder SOPR`
+
+**Scoring**:
+- LTH-SOPR ≤ 0.5 → Sub-score 0 (LTH selling at massive losses — capitulation)
+- LTH-SOPR ~1.0 → Sub-score 25 (LTH selling at breakeven)
+- LTH-SOPR ≥ 5.0 → Sub-score 100 (LTH realizing 5x+ profits — distribution)
+
+**Interpretation**: LTH selling at a loss is extremely rare and signals deep cycle bottoms. LTH selling at large multiples of profit indicates mature bull market distribution.
+
+---
+
+### W4: STH-SOPR — Short-Term Holder Spent Output Profit Ratio (Weight: 8 points)
+
+**What it is**: Same concept as LTH-SOPR but for Short-Term Holders (coins held <155 days). STH-SOPR < 1.0 means recent buyers are selling at a loss (panic), while > 1.0 means they're selling at a profit.
+
+**Search keywords**: `Bitcoin STH SOPR` or `BTC short term holder SOPR`
+
+**Scoring**:
+- STH-SOPR ≤ 0.95 → Sub-score 0 (STH in significant loss — capitulation)
+- STH-SOPR ~1.00 → Sub-score 50 (Breakeven — key psychological level)
+- STH-SOPR ≥ 1.05 → Sub-score 100 (STH in profit — euphoric selling)
+
+**Interpretation**: STH-SOPR persistently below 1.0 indicates recent buyers are underwater and panic selling — a bear market / bottom signal. STH-SOPR consistently above 1.0 means easy profits, attracting more speculation.
+
+---
+
+### W5: LTH Supply Percentage (Weight: 7 points)
+
+**What it is**: The percentage of total Bitcoin supply held by Long-Term Holders (>155 days). When LTH supply rises, coins are moving from weak hands (traders) to strong hands (holders) — accumulation. When it falls, LTH are distributing to new speculators.
+
+**Search keywords**: `Bitcoin long term holder supply percentage` or `BTC LTH supply ratio glassnode`
+
+**Scoring** (INVERTED — higher LTH supply % = more accumulation = lower heat):
+- LTH Supply ≥ 75% → Sub-score 0 (Maximum accumulation — bottom zone)
+- LTH Supply ~65% → Sub-score 50 (Neutral)
+- LTH Supply ≤ 55% → Sub-score 100 (Maximum distribution — top zone)
+
+**Interpretation**: This indicator is inverted because high LTH supply means coins are locked up by patient holders (bullish for future price, bearish for current sentiment). LTH supply peaks near cycle bottoms and troughs near cycle tops.
+
+---
+
+### W6: 365-Day Moving Average Ratio (Weight: 6 points)
+
+**What it is**: Current BTC price ÷ 365-day (1-year) moving average. When the ratio is below 1.0, price is below its annual average — a bear market signal and potential accumulation zone. When well above 1.0, price has significantly outrun its average — potentially overheated.
+
+**Search keywords**: `Bitcoin 365 day moving average` or `BTC price vs 1 year MA`
+
+**Scoring**:
+- Ratio ≤ 0.5 → Sub-score 0 (Price 50%+ below annual MA — deep bear)
+- Ratio ~1.0 → Sub-score 33 (At the annual MA — neutral to slightly cool)
+- Ratio ≥ 2.0 → Sub-score 100 (Price 2x above annual MA — overheated)
+
+---
+
+### W7: 200-Week Moving Average Multiplier (Weight: 6 points)
+
+**What it is**: Current BTC price ÷ 200-week moving average. The 200WMA has historically acted as the "ultimate floor" in Bitcoin cycles. Price touching or going below the 200WMA has marked every major cycle bottom. Ratios of 3.5x+ have marked cycle tops.
+
+**Search keywords**: `Bitcoin 200 week moving average multiplier` or `BTC 200 WMA ratio`
+
+**Scoring**:
+- Multiplier ≤ 0.5 → Sub-score 0 (Below 200WMA — generational buying opportunity)
+- Multiplier ~1.0 → Sub-score 17 (At 200WMA — strong support zone)
+- Multiplier ≥ 3.5 → Sub-score 100 (3.5x above 200WMA — cycle top zone)
+
+**Interpretation**: Bitcoin has never closed a weekly candle below its 200WMA for an extended period. When the multiplier approaches 1.0 or drops below it, this is a historically rare and powerful buy signal.
+
+---
+
+### W8: Weekly RSI (Weight: 5 points)
+
+**What it is**: The Relative Strength Index on the weekly timeframe (14-period), measuring the speed and magnitude of price changes. Values range 0-100. The weekly timeframe filters out daily noise and reflects medium- to long-term momentum.
+
+**Search keywords**: `Bitcoin weekly RSI` or `BTC RSI weekly chart`
+
+**Scoring**:
+- Weekly RSI ≤ 20 → Sub-score 0 (Extreme oversold)
+- Weekly RSI ~50 → Sub-score 50 (Neutral momentum)
+- Weekly RSI ≥ 80 → Sub-score 100 (Extreme overbought)
+- Linear interpolation
+
+**Historical reference**: Bitcoin weekly RSI below 30 has occurred only at major cycle bottoms (2015, late 2018, March 2020, late 2022). Weekly RSI above 80 typically marks late-stage bull market tops.
+
+---
+
+### W9: Volume Change Percentage (Weight: 4 points)
+
+**What it is**: Current trading volume compared to the 30-day average volume, expressed as a percentage change. After a prolonged decline, volume dry-up (significantly below average) signals selling exhaustion. During rallies, extreme volume spikes can indicate blow-off tops.
+
+**Search keywords**: `Bitcoin trading volume trend` or `BTC volume vs 30 day average`
+
+**Scoring**:
+- Volume 50%+ below 30-day avg → Sub-score 20 (Selling exhaustion — constructive for bottoms)
+- Volume near 30-day avg → Sub-score 45 (Normal)
+- Volume 200%+ above 30-day avg → Sub-score 100 (Blow-off volume — potential climax top)
+
+**Interpretation**: Low volume after a crash = sellers exhausted (bullish for bottom formation). Extremely high volume after a rally = potential climax / blow-off top.
+
+---
+
+## Market Heat Score — Comprehensive Rating
+
+After scoring all 13 indicators, calculate the weighted composite:
+
+**Total Score = Σ (Indicator Sub-score × Weight / 100)**
+
+The maximum is 100. Interpret the composite score as follows:
+
+| Score Range | Rating | Market Phase | Action |
+|-------------|--------|-------------|--------|
+| 0-15 | 🔵 **Extreme Fear** | Historic bottom opportunity | Aggressive accumulation (60-80% of planned BTC allocation) |
+| 16-30 | 🟢 **Fear** | Undervalued, accumulation window | Batch accumulation (40-60% of allocation) |
+| 31-45 | 🟢 **Moderate Fear** | Cool market, opportunity emerging | Begin building position (20-40% of allocation) |
+| 46-55 | ⚪ **Neutral** | Balanced sentiment | Hold current position, monitor for directional shift |
+| 56-70 | 🟡 **Moderate Greed** | Hot market, rising risk | Tighten stops, consider trimming 10-20% |
+| 71-85 | 🟠 **Greed** | Overheated, distribution phase | Gradually take profits, reduce to 40-60% of peak position |
+| 86-100 | 🔴 **Extreme Greed** | Historic top signal | Aggressive profit-taking, reduce to 20% or less |
+
+**Critical note**: Position percentages refer to your planned crypto allocation, not total net worth. Never allocate more to crypto than you can afford to lose entirely.
+
+---
 
 ## Output Format
 
-Use the following structured template to output the analysis results:
+Use the following structured template for analysis output:
 
 ```
-# 🔍 Bitcoin Bottom-Timing Analysis Report
+# 🌡️ Bitcoin Market Heat Report
 
 **Date**: [current date]
 **BTC Current Price**: $[price]
+**Market Heat Score**: [X] / 100
 
-## 📊 Indicator Dashboard
+## 📊 Daily Pulse Indicators (Score: [X] / 32)
 
-| Indicator | Current Value | Bottom Signal | Description |
-|------|---------|---------|------|
-| Weekly RSI | [value] | [Triggered/Not triggered] | [Brief description] |
-| Volume Change | [relative to 30-day avg] | [Triggered/Not triggered] | [Brief description] |
-| MVRV Ratio | [value] | [Triggered/Not triggered] | [Brief description] |
-| Fear & Greed Index | [value] | [Triggered/Not triggered] | [Brief description] |
-| Miner Shutdown Price | $[price] | [Triggered/Not triggered] | [Brief description] |
-| LTH Supply Ratio | [percentage] | [Triggered/Not triggered] | [Brief description] |
+| Indicator | Current Value | Sub-score | Weight | Contribution | Signal |
+|-----------|--------------|-----------|--------|-------------|--------|
+| ETF Daily Net Flow | $[±X]M | [0-100] | 12 | [X] | [Brief] |
+| Funding Rate | [X]% | [0-100] | 8 | [X] | [Brief] |
+| Fear & Greed Index | [X] | [0-100] | 7 | [X] | [Brief] |
+| Long/Short Ratio | [X] | [0-100] | 5 | [X] | [Brief] |
 
-## 🚦 Overall Rating
+## 📊 Weekly Structure Indicators (Score: [X] / 68)
 
-**Bottom Rating**: [Extremely Strong / Very Strong / Strong / Moderate / Weak / Not recommended]
-**Triggered Indicators**: [X] / 6
+| Indicator | Current Value | Sub-score | Weight | Contribution | Signal |
+|-----------|--------------|-----------|--------|-------------|--------|
+| LTH-MVRV | [X] | [0-100] | 12 | [X] | [Brief] |
+| NUPL | [X] | [0-100] | 11 | [X] | [Brief] |
+| LTH-SOPR | [X] | [0-100] | 9 | [X] | [Brief] |
+| STH-SOPR | [X] | [0-100] | 8 | [X] | [Brief] |
+| LTH Supply % | [X]% | [0-100] | 7 | [X] | [Brief] |
+| 365d MA Ratio | [X] | [0-100] | 6 | [X] | [Brief] |
+| 200w MA Multiplier | [X] | [0-100] | 6 | [X] | [Brief] |
+| Weekly RSI | [X] | [0-100] | 5 | [X] | [Brief] |
+| Volume Change | [X]% | [0-100] | 4 | [X] | [Brief] |
 
-## 💰 Position-Building Recommendations
+## 🌡️ Market Heat Rating
 
-[Provide specific position-building strategy based on the rating, including:]
-- Recommended position ratio
-- Batch entry schedule (e.g., enter in 3 batches, 1 week apart)
-- Stop-loss reference level
+**Composite Score**: [X] / 100
+**Rating**: [Extreme Fear / Fear / Moderate Fear / Neutral / Moderate Greed / Greed / Extreme Greed]
+**Market Phase**: [description]
 
-## 📈 Historical Reference
+## 💰 Action Recommendation
 
-[If multiple signals are currently triggered, mention how similar situations performed historically]
+[Provide specific buy/sell/hold recommendations based on the score:]
+- **Position Action**: [Accumulate / Hold / Trim / Take Profits]
+- **Recommended allocation level**: [X-Y% of planned BTC allocation]
+- **Entry/Exit strategy**: [Batch sizing and timing]
+- **Key levels to watch**: [Price levels or indicator thresholds that would change the recommendation]
+
+## 📈 Indicator Highlights
+
+[Highlight 2-3 most notable indicator readings and what they imply — focus on any extreme readings or divergences between daily and weekly signals]
+
+## 🔮 Cycle Context
+
+[Place current readings in historical context — compare to previous cycle tops/bottoms]
 
 ## ⚠️ Risk Disclaimer
 
-- This model is based on historical data backtesting and does not guarantee future effectiveness
-- The crypto market is extremely volatile; a "bottom" may persist for months
-- Even if all indicators are triggered, prices may still drop further
+- This model is based on historical data patterns and does not guarantee future effectiveness
+- The crypto market is extremely volatile; scores can shift rapidly
+- Even extreme scores do not guarantee immediate reversals — bottoms and tops can persist for weeks or months
 - Never invest more than you can afford to lose
 - DCA (dollar-cost averaging) is recommended over going all-in at once
+- Daily indicators can change quickly; weekly structural indicators are more reliable for major cycle decisions
 - The above analysis is for reference only and does not constitute investment advice
 ```
 
 ## Execution Steps
 
-1. First search for Bitcoin's current price
-2. Use web_search to search for the latest data for each of the 6 indicators
-3. If precise values for a certain indicator cannot be found, try to obtain approximate data from public reports on on-chain data platforms such as Glassnode, CoinGlass, CryptoQuant
-4. Evaluate each indicator one by one according to the signal criteria
-5. Count the number of triggers to arrive at an overall rating
-6. Generate the report using the output template
-7. Append main data source links at the end of the report
+1. Search for Bitcoin's current price
+2. **Daily indicators**: Search for latest ETF net flow, funding rate, fear & greed index, and long/short ratio
+3. **Weekly indicators**: Search for LTH-MVRV, NUPL, LTH-SOPR, STH-SOPR, LTH supply %, 365d MA ratio, 200w MA multiplier, weekly RSI, and volume trends
+4. For each indicator, normalize the raw value to a 0-100 sub-score using the ranges defined above
+5. Calculate each indicator's contribution: (sub-score × weight) / 100
+6. Sum all contributions to get the composite Market Heat Score (0-100)
+7. Determine the rating level and corresponding action recommendation
+8. Generate the report using the output template
+9. Append primary data source links at the end
+
+## Data Sources
+
+- **ETF flows**: farside.co.uk, SoSoValue, Bloomberg
+- **Funding rate & long/short ratio**: CoinGlass, Binance, OKX
+- **Fear & Greed Index**: alternative.me
+- **On-chain metrics (MVRV, NUPL, SOPR, LTH supply)**: Glassnode, CryptoQuant, CoinGlass (some require paid subscriptions; free data may be slightly delayed)
+- **Moving averages & RSI**: TradingView, CoinGecko
+- **Volume data**: CoinMarketCap, CoinGecko, TradingView
 
 ## Important Reminders
 
-- Some on-chain data (such as MVRV, LTH Supply) require paid subscriptions to platforms like Glassnode to access precise real-time data; free searches may only find data cited by analysts or slightly delayed data
-- The miner shutdown price changes with the halving cycle, electricity prices, and mining machine iterations — pay attention to data timeliness
-- If reliable data for a certain indicator cannot be found, honestly state so rather than guessing
-- These indicators are suitable for judging medium- to long-term cycle bottoms (weekly/monthly level), not for short-term trading
+- Some on-chain data (LTH-MVRV, NUPL, SOPR) may require paid Glassnode/CryptoQuant subscriptions for real-time data; free searches may yield analyst-cited or slightly delayed data
+- If reliable data for an indicator cannot be found, honestly state so, note "Data unavailable" in the table, and calculate the score from remaining indicators (adjust weights proportionally)
+- Daily Pulse indicators can shift rapidly — they are best for timing entries/exits within an already-identified cycle phase
+- Weekly Structure indicators move slowly and are more reliable for identifying major cycle transitions
+- The scoring model is calibrated against historical Bitcoin cycles (2015-2024) and may need adjustment as the market matures
+- Divergence between daily and weekly scores is itself informative — when daily says "fear" but weekly says "greed," it may indicate a bull market pullback rather than a cycle top
 - All recommendations are for reference only and do not constitute investment advice
 
 ## Language & Output Rules
