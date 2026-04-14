@@ -330,22 +330,21 @@ Use the following structured template for analysis output:
 
 ## Execution Steps
 
-1. **Primary data source (preferred)**: Fetch all 13 indicators in one call from `https://brief.day1global.xyz/api/market-data`. This API returns a JSON object with:
-   - `crypto.btc.price` — current BTC price
-   - `btcMetrics` — all 13 indicator raw values (see field mapping below)
-   - `sentiment.cryptoFearGreed` — Fear & Greed Index value
-2. **Pre-calculated rating (optional)**: Fetch the composite score directly from `https://brief.day1global.xyz/api/market-rating`. This returns:
-   - `totalScore` (0-100), `dailyScore` (0-32), `weeklyScore` (0-68)
+1. **Primary data source (one call gets everything)**: Fetch all 13 indicators, pre-calculated scores, and BTC price from a single endpoint:
+   ```
+   https://brief.day1global.xyz/api/btc-score
+   ```
+   This API returns:
+   - BTC current price
+   - All 13 indicator raw values (see field mapping below)
+   - Pre-calculated composite score: `totalScore` (0-100), `dailyScore` (0-32), `weeklyScore` (0-68)
    - `level` — rating label
    - `suggestion` — action recommendation
    - `indicators[]` — each indicator's name, raw value, normalized score, and weight
-3. **Historical comparison (optional)**: Fetch `https://brief.day1global.xyz/api/metrics-history` for yesterday, 1-week-ago, and 1-month-ago snapshots to show trends
-4. **Fallback**: If the API is unavailable, use web_search to find each indicator's latest data from the sources listed below
-5. For each indicator, normalize the raw value to a 0-100 sub-score using the ranges defined above
-6. Calculate each indicator's contribution: (sub-score × weight) / 100
-7. Sum all contributions to get the composite Market Heat Score (0-100)
-8. Determine the rating level and corresponding action recommendation
-9. Generate the report using the output template
+2. **Fallback**: If the API is unavailable, use web_search to find each indicator's latest data from the fallback sources listed below
+3. Use the pre-calculated scores directly, or verify by normalizing raw values using the ranges defined above
+4. Determine the rating level and corresponding action recommendation
+5. Generate the report using the output template
 
 ### API Field Mapping
 
@@ -367,8 +366,7 @@ Use the following structured template for analysis output:
 
 ## Data Sources
 
-- **Primary (all-in-one)**: `https://brief.day1global.xyz/api/market-data` — aggregates all 13 indicators from CoinGlass, OKX, Finnhub, and alternative.me
-- **Pre-calculated score**: `https://brief.day1global.xyz/api/market-rating` — returns the weighted composite score directly
+- **Primary (all-in-one)**: `https://brief.day1global.xyz/api/btc-score` — returns all 13 indicator raw values + pre-calculated scores in a single call, minimizing API usage
 - **Fallback sources** (if API is unavailable):
   - ETF flows: farside.co.uk, SoSoValue, Bloomberg
   - Funding rate & long/short ratio: CoinGlass, Binance, OKX
@@ -379,8 +377,7 @@ Use the following structured template for analysis output:
 
 ## Important Reminders
 
-- **Always try the API first** — it provides all 13 indicators with a single fetch, no paid subscriptions needed
-- The API data is cached and refreshes every 60 seconds; the frontend refreshes every 5 minutes
+- **Always call `https://brief.day1global.xyz/api/btc-score` first** — one request returns all 13 indicators + scores, no paid subscriptions needed, and avoids excessive API calls
 - If the API is down, fall back to web_search for individual indicators
 - If reliable data for an indicator cannot be found via any source, honestly state so, note "Data unavailable" in the table, and calculate the score from remaining indicators (adjust weights proportionally)
 - Daily Pulse indicators can shift rapidly — they are best for timing entries/exits within an already-identified cycle phase
