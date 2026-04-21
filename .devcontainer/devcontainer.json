@@ -1,0 +1,13 @@
+{
+  "name": "n8n-codespace",
+  "dockerComposeFile": "../docker-compose.yml",
+  "service": "n8n",
+  "workspaceFolder": "/workspaces/${localWorkspaceFolderBasename}",
+  "forwardPorts": [5678],
+  "portsAttributes": {
+    "5678": {
+      "label": "n8n",
+      "onAutoForward": "openBrowser"
+    }
+  }
+}
